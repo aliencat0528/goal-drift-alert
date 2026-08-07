@@ -1,6 +1,6 @@
 > 繼承根目錄共用規則（Claude Code 已自動載入，勿重複讀取 ../CLAUDE.md）
 
-# alertgate 專案規則
+# goal-drift-alert 專案規則
 
 ## 技術棧
 

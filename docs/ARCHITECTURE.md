@@ -137,7 +137,7 @@ LSTM／Transformer 的優點是適應性強，而適應性正是監控的敵人�
 ## 目錄結構
 
 ```
-alertgate/
+goal-drift-alert/
 ├── config/params.yaml        # 所有門檻的唯一真相
 ├── data/
 │   ├── examples/             # 版控內的範例資料（唯一進 repo 的資料）

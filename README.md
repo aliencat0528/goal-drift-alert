@@ -1,4 +1,4 @@
-# alertgate - 把警示當預算來管的個人風險決策系統
+# goal-drift-alert - 把警示當預算來管的個人風險決策系統
 
 當你的目標開始偏移、待辦開始腐爛時，它只在「還來得及救」的那一刻說話——而且每天最多三次。
 
@@ -34,7 +34,7 @@
 > M0 階段只有文件與參數骨架，`sync`／`compute` 尚未實作。以下是 M1 完成後的路徑。
 
 ```bash
-git clone https://github.com/aliencat0528/alertgate.git && cd alertgate
+git clone https://github.com/aliencat0528/goal-drift-alert.git && cd goal-drift-alert
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
@@ -83,7 +83,7 @@ open out/dashboard.html
 ## 專案結構
 
 ```
-alertgate/
+goal-drift-alert/
 ├── config/params.yaml     # 所有門檻的唯一真相，程式碼不得硬編碼
 ├── data/                  # 真實資料全部 gitignored，只有 examples/ 進版控
 ├── docs/

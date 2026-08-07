@@ -1,6 +1,6 @@
-# Prepare — alertgate 決策記錄
+# Prepare — goal-drift-alert 決策記錄
 
-> **版本**：AG-006 · 2026-08-07
+> **版本**：AG-007 · 2026-08-07
 > **載入時機**：本專案的新功能討論 / 架構設計 / 技術選型。
 > 記錄規則繼承主線 `prepare.md`，此處只記差異與落地細節。
 > **不複製主線決策的理由**，只寫落地細節 ＋ `← D-00X` 指標。
@@ -8,6 +8,24 @@
 ---
 
 ## 決策日誌（新的在上）
+
+### AG-007 · 2026-08-07 · 命名
+
+- **決策**：專案由 `alertgate` 更名為 **`goal-drift-alert`**（遠端 repo、本機資料夾、
+  所有文件引用同步更換）。更名發生在 v0.1.0 推出後的當天，**走正規分支 → PR，不 force push main**
+- **理由**：`alertgate` 是機制名（閘門），讀者要先讀完 `DECISION-FLOW.md` 才知道它在管什麼；
+  以**現有功能**命名才找得到、也說得清。`drift`（偏移）是本專案實際偵測的東西——
+  **每天都在正常範圍內、累積起來卻到不了**，這正是異常偵測結構上抓不到的那一類
+- **為什麼不是 `goal-alert`**：本專案 `CLAUDE.md` 明寫「不做提醒功能」，
+  而 `goal-alert` 會被讀成到期提醒 App，**恰好是我們刻意棄選的那個東西**。
+  多一個 `drift` 換掉這個誤解，值得
+- **棄選**：維持 `alertgate`（不用動任何引用，但抽象到搜尋不到、也講不清）；
+  `goal-alert`（短，但語意撞上已棄選的提醒工具）；`drift-gate`（保留閘門概念，
+  但沒有 `goal` 就不知道在偏移什麼）
+- **落地**：`gh repo rename`；本機 `mv`；`README.md`／`CLAUDE.md`／`prepare.md`／
+  `config/params.yaml`／`docs/ARCHITECTURE.md` 五個檔案的引用一併替換。
+  **根 repo 的分支名 `docs/alertgate-init-twentysecond` 刻意不改**——它已推送且 PR #60 已開，
+  改名要關 PR 重開，成本高於收益；分支名是歷史，不是介面
 
 ### AG-006 · 2026-08-07 · ux
 

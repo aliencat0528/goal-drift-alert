@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Changed
+- **專案更名** `alertgate` → `goal-drift-alert`（← `AG-007`）：以現有功能命名而非機制命名。
+  不用 `goal-alert` 是因為它會被讀成到期提醒 App，而本專案明確不做提醒功能
+
 ### Added
 - M1：`sync` Notion 接入與每日 snapshot 差分
 - M1：`compute` pace ratio／required run rate／SPI／CPI
