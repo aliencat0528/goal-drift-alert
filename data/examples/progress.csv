@@ -1,0 +1,13 @@
+date,goal_id,delta,source
+2026-08-01,apply_202608,2,manual
+2026-08-02,apply_202608,0,manual
+2026-08-03,apply_202608,3,notion_diff
+2026-08-04,apply_202608,1,notion_diff
+2026-08-05,apply_202608,4,notion_diff
+2026-08-06,apply_202608,0,notion_diff
+2026-08-07,apply_202608,2,notion_diff
+2026-08-01,leetcode_202608,5,manual
+2026-08-03,leetcode_202608,3,manual
+2026-08-05,leetcode_202608,4,manual
+2026-08-07,leetcode_202608,2,manual
+2026-08-04,article_202608,1,manual

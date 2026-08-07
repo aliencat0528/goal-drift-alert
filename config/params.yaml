@@ -1,0 +1,114 @@
+# alertgate 參數總表
+# 這份檔案是所有門檻的唯一真相。程式碼裡不得出現硬編碼的門檻值。
+# 每個參數都附「為什麼是這個值」，改動時連理由一起改。
+
+meta:
+  version: "0.1.0"
+  timezone: "Asia/Taipei"
+  # 日界取 04:00 而非自然日：作息常跨午夜，自然日會把同一段工作切成兩天
+  day_boundary_hour: 4
+
+# ── 決策閘：誰發得出去 ──────────────────────────────────
+gate:
+  # 每天最多發幾則。M1 設 3 而非第一版設想的 5——個人場景的目標數本來就少，
+  # 配額太寬等於沒有配額
+  daily_quota: 3
+  # 期望損失門檻。V > min_value 才發；設 0 表示「只要淨值為正就發」
+  min_value: 0.0
+  # 打斷成本（與 unit_value 同單位）。個人場景無金額時走 interrupt_only，此值即基準
+  interrupt_cost: 1.0
+  # 時間消耗比低於此值一律不發：期初的 pace ratio 雜訊極大
+  # （第一週投 0 份，pace ratio = 0，但那完全正常）
+  early_period_ratio: 0.20
+  # 同一根因的多則警示合併成一則的相似度門檻
+  dedup_similarity: 0.7
+  # 連續幾天被標「不用理」就自動靜音該規則
+  auto_mute_after_dismiss: 3
+
+# ── 目標偏移 ────────────────────────────────────────
+drift:
+  # 壓力係數（required ÷ current）的黃燈門檻
+  pressure_yellow: 1.5
+  # 紅燈不設固定值：改用「required 是否超過歷史最佳 run rate 的 P90」動態判定
+  # 這就是「可行性翻轉」——目標從困難變成以你的歷史表現不可能
+  feasibility_percentile: 0.90
+  # run rate 用滾動視窗算，不用整期平均（整期平均會被期初的零值長期拖住）
+  run_rate_window_days: 14
+  # 靜默期門檻：無進展天數超過「歷史間隔的 P85」才算異常
+  silence_percentile: 0.85
+
+# ── 待辦風險 ────────────────────────────────────────
+task:
+  # 任務年齡超過同類的這個百分位 = 異常長壽。門檻由資料決定，不由人定
+  age_percentile: 0.85
+  # 改期次數達此值即列入高風險（假設：三次以上完成機率斷崖式下降，待自身資料驗證）
+  deferral_threshold: 3
+  # 觸碰距今超過幾天算停滯
+  stall_days: 7
+  # 腐爛型判定：超過此天數且無任何觸碰 → 進「建議刪除」清單而非警示
+  rot_days: 90
+  # WIP 上限。超過時用 Little's Law 前瞻警示：週期時間必然變長
+  wip_limit: 12
+
+# ── 偵測器 ──────────────────────────────────────────
+detector:
+  ewma:
+    # 指數加權係數。0.2 對小幅持續偏移敏感，正是目標偏移的形狀
+    lambda: 0.2
+    # 控制界限倍數（L-sigma）
+    L: 3.0
+  western_electric:
+    # 連續 N 點落在中心線同一側 = 趨勢。版本有用 7/8/9，本專案固定用 8 並在報告標明
+    run_length: 8
+  cusum:
+    k: 0.5      # 容許漂移量（以標準差為單位）
+    h: 5.0      # 決策界限
+  ratio:
+    # 比率型的分母下限。低於此值一律不發——
+    # CVR 2% 掉到 1% 若分母只有 60，完全在雜訊範圍內。這是最大宗的假警報來源
+    min_denominator: 100
+  count:
+    # 日均低於此值走 Poisson exact，否則走 Negative Binomial
+    poisson_threshold: 10
+  seasonality:
+    # ACF 在這些 lag 上顯著才啟用季節分解
+    candidate_lags: [7, 24]
+    acf_significance: 0.30
+
+# ── 預測 ────────────────────────────────────────────
+forecast:
+  monte_carlo_runs: 10000
+  # bootstrap 抽樣的歷史視窗
+  bootstrap_window_days: 30
+  # 輸出區間的信心水準
+  confidence: 0.85
+  # reference class 先驗至少要幾筆同類已結束目標才啟用
+  min_reference_class: 5
+
+# ── 冷啟動與關卡 ────────────────────────────────────
+cold_start:
+  # 觀察期：只收不發，但立刻顯示「已觀察 N 天，目前正常範圍 X–Y」
+  observe_days: 14
+  # 影子模式：發但只寫進 dashboard 不推播
+  shadow_days: 14
+  # 各偵測器的最低資料量（不足時該偵測器停用並在 dashboard 標「校準中」）
+  min_points:
+    ewma: 20
+    seasonal: 42        # 6 週，要看到 6 個週末才估得出週效應
+    monte_carlo: 30
+    survival_events: 100
+  # 分級發布：影子期結束後前幾天只發最高分的 1 則
+  ramp_up_days: 7
+  ramp_up_quota: 1
+
+# ── 資料同步 ────────────────────────────────────────
+sync:
+  notion:
+    # 「職缺搜集情況」資料庫
+    jobs_data_source: "collection://3b3e6df2-9bcf-8059-b90e-000bba8351f7"
+    # 狀態欄的漏斗階段，順序即漏斗順序
+    funnel_stages: ["觀望中", "已投遞", "有回覆"]
+  # 每日 snapshot：Notion 的 status 變更沒有時間戳，靠每日快照的差分還原流量
+  snapshot_hour: 23
+  # 快照保留天數（0 = 永久）
+  snapshot_retention_days: 0

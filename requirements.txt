@@ -1,0 +1,15 @@
+# M1 依賴上限（新增任何統計或 ML 套件前必須先問 — 見 CLAUDE.md）
+pandas>=2.2
+numpy>=1.26
+scipy>=1.13          # 只用分佈與檢定（Poisson exact / Wilson 區間）
+PyYAML>=6.0
+Jinja2>=3.1
+notion-client>=2.2
+
+# 開發
+ruff>=0.5
+
+# M2 才裝，此處僅記錄不安裝：
+#   statsmodels   — STL 季節分解
+#   lifelines     — Kaplan-Meier / Cox
+#   scikit-learn  — 機率校準

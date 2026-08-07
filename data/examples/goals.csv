@@ -1,0 +1,7 @@
+goal_id,name,type,target,start_date,deadline,unit_value,loss_kind,parent_id,owner
+apply_202608,8 月投遞職缺,cumulative,60,2026-08-01,2026-08-31,,interrupt_only,,self
+apply_w32,第 32 週投遞,cumulative,15,2026-08-03,2026-08-09,,interrupt_only,apply_202608,self
+apply_daily,每日投遞,cumulative,1,2026-08-07,2026-08-07,,interrupt_only,apply_w32,self
+collect_daily,每日找職缺,cumulative,4,2026-08-07,2026-08-13,,interrupt_only,,self
+leetcode_202608,8 月刷題,cumulative,100,2026-08-01,2026-08-31,,interrupt_only,,self
+article_202608,ina 文章更新,cumulative,3,2026-08-01,2026-08-31,,interrupt_only,,self
