@@ -12,7 +12,8 @@ Python 3.11+。**無框架、無前端建置步驟**——dashboard 是 Python �
 
 ## Commit scopes
 
-`sync`（資料接入與 Notion 同步）／`compute`（指標、偵測器、預測）／`gate`（決策閘與警示預算）／
+`core`（參數載入與資料模型，不含判斷）／`sync`（資料接入與 Notion 同步）／
+`compute`（指標、偵測器、預測）／`gate`（決策閘與警示預算）／
 `dash`（dashboard 與決策卡輸出）／`config`（參數）／`data`（schema 與範例資料）／`docs`
 
 ## 決策記錄
@@ -28,6 +29,10 @@ Commit 前必跑：
 ruff check .
 python3 -m py_compile $(git ls-files '*.py')
 python3 -c "import yaml;yaml.safe_load(open('config/params.yaml'))"
+
+# 冒煙測試＝回放（範例資料，兩個日期各驗一條路徑）
+python3 -m compute.report --data-dir data/examples --as-of 2026-08-24 --no-write
+python3 -m compute.report --data-dir data/examples --as-of 2026-08-30 --no-write --explain
 ```
 
 **M1 沒有單元測試是刻意的**——這個階段的正確性靠「回放」驗證（用歷史資料跑一次、
