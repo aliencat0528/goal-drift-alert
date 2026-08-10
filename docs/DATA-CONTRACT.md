@@ -147,6 +147,6 @@
 | 日期連續性：snapshot 有無斷天 | 標記受影響的 delta，`source` 記為 `notion_diff_gap` |
 | `delta` 為負 | 記入日誌，不寫入 progress（視為 Notion 端的修正或刪除） |
 | `goal_id` 在 `goals.csv` 存在 | 拒絕寫入並報錯 |
-| `deadline > start_date` | 拒絕建立目標 |
+| `deadline ≥ start_date` | 拒絕建立目標。**取 `≥` 不是 `>`**：日目標的起訖本來就同一天，用 `>` 會把 `apply_daily` 這類目標全擋掉（← `prepare.md` AG-008） |
 | 累積量 > target 的 150% | 提示「目標可能訂太低」，不是錯誤 |
 | 資料量對照 `cold_start.min_points` | 不足者該偵測器停用，dashboard 標「校準中」 |

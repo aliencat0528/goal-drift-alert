@@ -42,6 +42,7 @@ flowchart TD
 
 | 模組 | 職責 | 明確不做 |
 |------|------|---------|
+| `core/` | 參數載入（`params.yaml` → 唯讀物件）、資料模型、日界換算 | **不做任何判斷**，也不回寫參數 |
 | `sync/` | 接 Notion 與 CSV，正規化成三張表，每日 snapshot | 不做任何判斷與計算 |
 | `compute/` | 指標、偵測器、預測。輸出「候選警示 ＋ 機率 ＋ 證據」 | **不決定要不要發** |
 | `gate/` | 期望損失、可救性、配額排擠、去重、冷啟動關卡 | 不計算指標，只消費 compute 的輸出 |
@@ -99,12 +100,19 @@ flowchart LR
 
 | # | 偵測器 | 適用 | 方法 | M1 |
 |---|--------|------|------|-----|
-| D1 | 季節性殘差 | 有週期的連續量 | STL → 殘差 ÷ MAD | ✅ |
+| D1 | 季節性殘差 | 有週期的連續量 | STL → 殘差 ÷ MAD | M2 |
 | D2 | 計數型偏離 | 整數、可能稀疏 | Poisson exact／Negative Binomial | ✅ |
-| D3 | 比率型偏離 | 有界 [0,1] | Wilson 區間，分母不足不發 | ✅ |
+| D3 | 比率型偏離 | 有界 [0,1] | Wilson 區間，分母不足不發 | M2 |
 | D4 | 累積 pacing | 單調累積量 | 外推 → 期末預測區間 vs 目標 | ✅ |
 | D5 | 變點 | 任何型態 | EWMA／CUSUM ＋ Western Electric | ✅ |
 | D6 | 生存分析 | 個體級有事件定義 | Kaplan–Meier／Cox | M2 |
+
+> **D1 與 D3 原訂 M1，實作時退回 M2**（← `prepare.md` AG-008）：D1 要 `statsmodels`（M2 依賴）
+> 且 42 天門檻套在 31 天的月目標上永遠在校準中；D3 要漏斗分母，而 `progress.csv` 沒有分母欄位。
+> 兩者現在做出來都無法驗證。
+>
+> **D2 不單獨成一則警示**：「近 7 天比平常少」本身沒有行動可做，要接到「所以做不完了」才有。
+> 所以 D2 的角色是把統計佐證掛到 D4／D5 的觸發上。
 
 **D5 永遠與其他並聯**：D1–D4 問「今天偏離正常嗎」，只有 D5 問「正常本身變了嗎」。
 後者是前者結構上抓不到的——滾動基線會慢慢把新常態吸收進去，然後安靜下來。
@@ -143,18 +151,30 @@ goal-drift-alert/
 │   ├── examples/             # 版控內的範例資料（唯一進 repo 的資料）
 │   ├── goals.csv             # gitignored
 │   ├── progress.csv          # gitignored
-│   ├── tasks.csv             # gitignored
+│   ├── tasks.csv             # gitignored（M2）
 │   └── snapshots/            # gitignored
-├── docs/
-│   ├── ARCHITECTURE.md       # 本檔
-│   ├── DATA-CONTRACT.md      # schema 與 Notion 對應
-│   ├── DECISION-FLOW.md      # 決策規則、五道關卡、參數說明
-│   └── DASHBOARD.md          # 視覺化設計
-├── sync/                     # M1 待實作
-├── compute/                  # M1 待實作
-├── gate/                     # M1 待實作
-├── dash/                     # M1 待實作
-└── out/                      # 產出的 HTML（gitignored）
+├── docs/                     # ARCHITECTURE／DATA-CONTRACT／DECISION-FLOW／DASHBOARD
+├── core/
+│   ├── config.py             # params.yaml → 唯讀物件，取不到就爆
+│   └── models.py             # Goal／ProgressEntry／SnapshotRow／Issue
+├── sync/
+│   ├── loader.py             # goals.csv／progress.csv
+│   ├── snapshot.py           # 每日快照 ＋ 差分還原流量
+│   ├── notion.py             # Notion 抓取（獨立執行，不在報表路徑上）
+│   └── quality.py            # 關卡 0 契約檢查、關卡 1 資料體檢
+├── compute/
+│   ├── metrics.py            # pace ratio／required／run rate／SPI／歷史最佳 P90
+│   ├── forecast.py           # bootstrap Monte Carlo
+│   ├── detect.py             # D2／D4／D5 → 四個觸發
+│   └── report.py             # 每日執行入口（python3 -m compute.report）
+├── gate/
+│   ├── value.py              # V 公式與可救性
+│   ├── rules.py              # 三個不該警示的時刻 ＋ 冷啟動分級
+│   └── pipeline.py           # 去重 → 排擠 → 取前 N
+├── dash/
+│   ├── card.py               # 決策卡
+│   └── summary.py            # 每日摘要（被擋掉的那些）
+└── out/                      # 產出（gitignored）
 ```
 
 ## 里程碑

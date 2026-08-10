@@ -24,6 +24,18 @@ gate:
   dedup_similarity: 0.7
   # 連續幾天被標「不用理」就自動靜音該規則
   auto_mute_after_dismiss: 3
+  # 無金額場景的損失基準：錯過**整個**目標大約等於幾次打斷的代價。
+  # 這個數字決定 V 的尺度，min_value 與 interrupt_cost 都以它為單位——改它等於改全系統靈敏度。
+  # 校準準則不是「感覺多少」，而是：**月目標在可行性翻轉的那一刻，V 必須為正**，
+  # 因為那是本系統唯一保證會說話的時刻。80 是滿足這個準則的最小整十值
+  # （V 同時被剩餘時間比例與可救性相乘，兩者在翻轉時都已遠小於 1）。
+  # 這是第一次校準，正式校準要等 M3 的 90 天回放
+  interrupt_only_loss_units: 80.0
+  # 「剛達成里程碑後」不發：往前看幾天、超過自己的哪個百分位算里程碑
+  post_milestone_days: 3
+  post_milestone_percentile: 0.75
+  # 累積量超過 target 的這個倍數 → 提示「目標可能訂太低」，不是錯誤
+  overshoot_ratio: 1.5
 
 # ── 目標偏移 ────────────────────────────────────────
 drift:
@@ -32,6 +44,11 @@ drift:
   # 紅燈不設固定值：改用「required 是否超過歷史最佳 run rate 的 P90」動態判定
   # 這就是「可行性翻轉」——目標從困難變成以你的歷史表現不可能
   feasibility_percentile: 0.90
+  # required 超過歷史最佳的這個倍數 → 可救性歸零，改發「建議改目標」而不是警示
+  infeasible_multiple: 1.5
+  # 壓力係數要連續幾天在黃燈之上才算「緩衝耗盡」。
+  # 設 1 會讓單日的零產出就觸發，而個人場景的單日雜訊極大
+  pressure_consecutive_days: 3
   # run rate 用滾動視窗算，不用整期平均（整期平均會被期初的零值長期拖住）
   run_rate_window_days: 14
   # 靜默期門檻：無進展天數超過「歷史間隔的 P85」才算異常
@@ -52,6 +69,9 @@ task:
 
 # ── 偵測器 ──────────────────────────────────────────
 detector:
+  # 「歷史最佳 run rate」取的是持續速率而非單日最高：連續 N 日平均的 P90。
+  # 單日最高會高估——一天投 8 份不代表能連兩週每天 8 份，而 required 問的正是「接下來每天」
+  best_rate_window_days: 7
   ewma:
     # 指數加權係數。0.2 對小幅持續偏移敏感，正是目標偏移的形狀
     lambda: 0.2
@@ -70,6 +90,10 @@ detector:
   count:
     # 日均低於此值走 Poisson exact，否則走 Negative Binomial
     poisson_threshold: 10
+    # 「近期」是幾天，以及單尾檢定的顯著水準。
+    # D2 不單獨成一則警示（「近 7 天比平常少」沒有行動可做），只當其他觸發的統計佐證
+    recent_days: 7
+    alpha: 0.05
   seasonality:
     # ACF 在這些 lag 上顯著才啟用季節分解
     candidate_lags: [7, 24]
@@ -84,6 +108,10 @@ forecast:
   confidence: 0.85
   # reference class 先驗至少要幾筆同類已結束目標才啟用
   min_reference_class: 5
+  # 固定種子：同一份資料重跑必須得到同一張決策卡，否則回放比不出「改了參數之後差在哪」
+  random_seed: 20260807
+  # 完成日區間要往 deadline 之後多模擬幾天（延期選項需要「什麼時候做得完」）
+  extension_horizon_days: 60
 
 # ── 冷啟動與關卡 ────────────────────────────────────
 cold_start:
@@ -97,6 +125,9 @@ cold_start:
     seasonal: 42        # 6 週，要看到 6 個週末才估得出週效應
     monte_carlo: 30
     survival_events: 100
+    # 歷史最佳 P90 要幾天才成立。3 週才有 3 個不重疊的 7 日視窗；
+    # 少於這個數，「你的歷史最佳」其實就是「你今天的表現」，可行性翻轉會變成永遠不觸發
+    historical_best: 21
   # 分級發布：影子期結束後前幾天只發最高分的 1 則
   ramp_up_days: 7
   ramp_up_quota: 1
@@ -108,6 +139,14 @@ sync:
     jobs_data_source: "collection://3b3e6df2-9bcf-8059-b90e-000bba8351f7"
     # 狀態欄的漏斗階段，順序即漏斗順序
     funnel_stages: ["觀望中", "已投遞", "有回覆"]
+    # 快照的 (維度, 值) → 哪個目標的進度。**這是設定不是推論**：
+    # 猜錯會把「收集」記成「投遞」，那是語意錯誤，機器一定抓不到（只有回放時人看得出來）。
+    # 只列「已投遞」是因為「觀望中」的計數會隨狀態往下游流動而減少，差分出來不是流量；
+    # 收集量改走 createdTime（系統自動寫的時間戳，見 sync/notion.py）
+    progress_map:
+      - dimension: "狀態"
+        value: "已投遞"
+        goal_id: "apply_202608"
   # 每日 snapshot：Notion 的 status 變更沒有時間戳，靠每日快照的差分還原流量
   snapshot_hour: 23
   # 快照保留天數（0 = 永久）

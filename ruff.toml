@@ -1,0 +1,16 @@
+# 風格規則繼承根 CLAUDE.md：Python 4 spaces、double quotes、行寬 100
+line-length = 100
+target-version = "py311"
+exclude = [".venv", "out"]
+
+[lint]
+# E/F 基本正確性、I import 排序、UP 語法現代化、B 常見陷阱
+select = ["E", "F", "I", "UP", "B"]
+
+[lint.isort]
+# 專案自己的套件排在第三方之後，讓 core/sync/compute/gate/dash 的相依方向一眼看得出來
+known-first-party = ["core", "sync", "compute", "gate", "dash"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
