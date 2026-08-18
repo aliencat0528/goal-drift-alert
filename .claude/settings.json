@@ -1,0 +1,72 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'R=\"$(cd \"${CLAUDE_PROJECT_DIR:-.}/..\" 2>/dev/null && pwd)\"; [ -n \"$R\" ] || exit 0; f=\"$R/.claude/hooks/guard-outside.js\"; if [ -f \"$f\" ]; then CLAUDE_PROJECT_DIR=\"$R\" node \"$f\"; else exit 0; fi'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e 'let d=\"\";process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{const p=((JSON.parse(d||\"{}\")).tool_input||{}).file_path||\"\";if(/\\.env($|\\.)/.test(p)&&!/\\.env\\.example$/.test(p)){console.error(\"BLOCKED: 禁止直接寫入 .env 檔案，請使用 .env.example\");process.exit(2)}});'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e 'let d=\"\";process.stdin.on(\"data\",c=>d+=c).on(\"end\",()=>{const c=((JSON.parse(d||\"{}\")).tool_input||{}).command||\"\";const allow=process.env.ALLOW_FORCE===\"1\"||/(^|\\s)ALLOW_FORCE=1(\\s|$)/.test(c);const force=/git\\s+push\\b.*--force|git\\s+push\\b.*\\s-f\\b/.test(c);const hard=/git\\s+reset\\s+--hard/.test(c);if((force||hard)&&allow){console.error(\"⚠️ ALLOW_FORCE 已啟用，本次放行危險 git 操作\");process.exit(0)}if(force){console.error(\"BLOCKED: 禁止 force push（確認需要請前置 ALLOW_FORCE=1）\");process.exit(2)}if(hard){console.error(\"BLOCKED: 禁止 reset --hard，可能遺失未 commit 的變更（確認需要請前置 ALLOW_FORCE=1）\");process.exit(2)}});'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'R=\"$(cd \"${CLAUDE_PROJECT_DIR:-.}/..\" 2>/dev/null && pwd)\"; [ -n \"$R\" ] || exit 0; f=\"$R/.claude/hooks/guard-push-main.js\"; if [ -f \"$f\" ]; then node \"$f\"; else exit 0; fi'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'R=\"$(cd \"${CLAUDE_PROJECT_DIR:-.}/..\" 2>/dev/null && pwd)\"; [ -n \"$R\" ] || exit 0; f=\"$R/.claude/hooks/guard-pr-draft.js\"; if [ -f \"$f\" ]; then node \"$f\"; else exit 0; fi'"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'R=\"$(cd \"${CLAUDE_PROJECT_DIR:-.}/..\" 2>/dev/null && pwd)\"; f=\"$R/.claude/scripts/check-consistency.sh\"; [ -f \"$f\" ] && bash \"$f\" --quiet; true'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|Bash|Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'R=\"$(cd \"${CLAUDE_PROJECT_DIR:-.}/..\" 2>/dev/null && pwd)\"; [ -n \"$R\" ] || exit 0; f=\"$R/.claude/hooks/mark-untrusted.js\"; if [ -f \"$f\" ]; then node \"$f\"; else exit 0; fi'"
+          }
+        ]
+      }
+    ]
+  }
+}
